@@ -5,8 +5,7 @@ const PORT: string = ":" + (Deno.env.get("PORT") || "8080");
 const router = Router();
 const WEB3TOKEN = Deno.env.get("WEB3TOKEN");
 if (WEB3TOKEN === undefined) {
-	console.error("cannt find WEB3TOKEN env variable");
-	Deno.exit(1);
+	throw new Error("cannt find WEB3TOKEN env variable");
 }
 
 const limit: Record<string, { remain?: number; date?: number }> = {};
