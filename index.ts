@@ -8,11 +8,19 @@ if (WEB3TOKEN === undefined) {
 	throw new Error("cannt find WEB3TOKEN env variable");
 }
 
-const limit: Record<string, { remain?: number; date?: number }> = {};
+const limit: Record<string, {
+	remain?: number;
+	date?: number;
+}> = {};
 
 router.all("*", (request, conn) => {
-	console.log("[" + request.method + "] " + request.url);
 	const e: string = conn.remoteAddr.hostname + "";
+	const info = JSON.stringify({
+		ip: e,
+		method: request.method,
+		url: request.url,
+	});
+	console.info(info);
 	limit[e] ??= {};
 	limit[e].date ??= Date.now() + 1000;
 	limit[e].remain ??= 2;
@@ -24,7 +32,7 @@ router.all("*", (request, conn) => {
 		return new Response(
 			JSON.stringify({
 				success: false,
-				message: "too much request",
+				message: "too much request, limit 2 req/s",
 			}),
 			{
 				status: 429,
@@ -58,7 +66,7 @@ router.post("/create", async (request) => {
 		return new Response(
 			JSON.stringify({
 				success: false,
-				message: "body too large",
+				message: "body too large, maximum is 1MB",
 			}),
 			{
 				status: 413,
@@ -120,10 +128,15 @@ router.get("/", async () => {
 	return new Response(content, {
 		headers: {
 			"content-type": "text/html",
-			// "Cache-Control": "public, max-age=3600, immutable",
+			"cache-control": "public, max-age=3600, immutable",
 		},
 	});
 });
+
+router.all("/favicon.ico", () =>
+	new Response("redirect", {
+		status: 404,
+	}));
 
 router.all("*", () =>
 	new Response("redirect", {

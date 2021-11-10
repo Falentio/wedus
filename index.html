@@ -68,7 +68,7 @@
 						this.codeToHtml = codeToHtml
 						this.refresh()
 					})
-					this.html = "<pre class=\"text-light\"><code>" + this.text.replace(/[\u00A0-\u9999<>\&]/g, `&#${(i)=>i.charCodeAt(0)};`) + "</code></pre>"
+					this.html = "<pre class=\"text-light\"><code>" + this.text.replace(/[\u00A0-\u9999<>\&]/g, (i)=>`&#${i.charCodeAt(0)};`) + "</code></pre>"
 					return
 				}
 				this.html = this.codeToHtml(this.text, this.lang)
