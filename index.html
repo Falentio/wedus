@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<link
+		rel="stylesheet"
+		href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+		integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"
+		crossorigin="anonymous"
+	>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&display=swap">
+	<title>yet, another pastebin clone</title>
+</head>
+<style type="text/css">
+	pre code {
+		font-family: 'IBM Plex Mono', monospace;
+	}
+</style>
+<body v-scope="code" class="bg-dark" style="font-family: 'IBM Plex Mono', monospace;">
+	<nav class="navbar navbar-expand-lg navbar-dark bg-dark" >
+		<div class="container-fluid">
+			<a class="navbar-brand" href="https://github.com/Falentio/wedus">Wedus!!!</a>
+			<select class="form-select bg-light w-auto" v-model="lang" v-effect="if(lang)refresh()">
+				<option value="undefined" selected>Select language</option>
+				<option v-for="l of langList" :value="l">{{l}}</option>
+			</select>
+		</div>
+	</nav>
+	<div class="container-fluid" @mounted="atMounted">
+		<div v-if="html !== ''" v-html="html"></div>
+		<div v-else class="text-center text-primary align-middle">
+			<div class="spinner-border"></div>
+		</div>
+	</div>
+	<script
+		src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+		integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+		crossorigin="anonymous"
+	></script>
+	<script src="https://cdn.jsdelivr.net/npm/shiki@0.9.12" defer></script>
+	<script type="module" defer>
+		if (/\?debug/.test(window.location.href)){
+			await import("https://cdn.jsdelivr.net/npm/eruda")
+			await eruda.init()
+		}
+		import { createApp, reactive } from "https://cdn.jsdelivr.net/npm/petite-vue@0.3.0/dist/petite-vue.es.js"
+		import flourite from "https://cdn.jsdelivr.net/npm/flourite@1.2.1/dist/index.min.mjs"
+		let highlighter = shiki.getHighlighter({
+			theme: "dracula",
+		})
+		const langList = shiki.BUNDLED_LANGUAGES.map(a=>a.id)
+		const code = reactive({
+			text: "",
+			html: "",
+			codeToHtml: null,
+			lang: undefined,
+			langList,
+			refresh(){
+				this.lang += ""
+				if (this.lang === "undefined") {
+					this.lang = flourite(this.text, { shiki: true }).language
+				}
+				if (this.codeToHtml === null) {
+					highlighter.then(({codeToHtml})=>{
+						this.codeToHtml = codeToHtml
+						this.refresh()
+					})
+					this.html = "<pre class=\"text-light\"><code>" + this.text.replace(/[\u00A0-\u9999<>\&]/g, `&#${(i)=>i.charCodeAt(0)};`) + "</code></pre>"
+					return
+				}
+				this.html = this.codeToHtml(this.text, this.lang)
+			},
+			async atMounted(){
+				const hash = window.location.hash.slice(1)		
+				if ( hash === undefined || hash === "" ) {
+					this.text = "cant find requested file"
+					return this.refresh()
+				}
+				fetch(`https://${hash}.ipfs.dweb.link`).then(async response => {
+					if (!response.ok) {
+						if (response.status === 404 || response.status === 400){
+							this.text = "cant find requested file"
+						} else {
+							this.text = "Oops... Something went wrong"
+						}
+						this.refresh()
+						return
+					}
+					const text = await response.text()
+					this.text = text
+					this.refresh()
+				}).catch(e =>{
+					console.error(e)
+					this.text = "Oops... Something went wrong"
+					this.refresh()
+				})
+			}
+		})
+		createApp({
+			code,
+		}).mount("body")
+	</script>
+</body>
+</html>
