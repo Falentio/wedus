@@ -71,6 +71,10 @@
 					this.html = "<pre class=\"text-light\"><code>" + this.text.replace(/[\u00A0-\u9999<>\&]/g, (i)=>`&#${i.charCodeAt(0)};`) + "</code></pre>"
 					return
 				}
+				if (this.text.length > 20 * 1024) { // around 250 loc, the highlighting will skiped
+					console.log("skipping syntax highlighting, text length too long, potentially create performance issue")
+					return
+				}
 				this.html = this.codeToHtml(this.text, this.lang)
 			},
 			async atMounted(){
@@ -90,7 +94,7 @@
 						return
 					}
 					const text = await response.text()
-					this.text = text
+					this.text = text.slice(0, 1024 * 1024)
 					this.refresh()
 				}).catch(e =>{
 					console.error(e)
