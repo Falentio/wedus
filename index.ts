@@ -4,8 +4,32 @@ import { listenAndServe } from "https://deno.land/std@0.113.0/http/mod.ts";
 const PORT: string = ":" + (Deno.env.get("PORT") || "8080");
 const router = Router();
 const WEB3TOKEN = Deno.env.get("WEB3TOKEN");
+const REQ_PER_SECOND = +(Deno.env.get("REQ_PER_SECOND") || 2);
+const MAX_BODY_SIZE = +(Deno.env.get("MAX_BODY_SIZE") || 1024 * 1024);
+
+if (REQ_PER_SECOND < 0) {
+	throw new Error("invalid value for REQ_PER_SECOND");
+}
+
+if (MAX_BODY_SIZE < 0) {
+	throw new Error("invalid value for MAX_BODY_SIZE");
+}
+
 if (WEB3TOKEN === undefined) {
 	throw new Error("cannt find WEB3TOKEN env variable");
+}
+
+if (!await testToken(WEB3TOKEN)) {
+	throw new Error("invalid WEB3TOKEN");
+}
+
+async function testToken(token: string): Promise<boolean> {
+	const response = await fetch("https://api.web3.storage/user/uploads", {
+		headers: {
+			"authorization": "Bearer " + token,
+		},
+	});
+	return response.ok;
 }
 
 const limit: Record<string, {
@@ -21,12 +45,15 @@ router.all("*", (request, conn) => {
 		url: request.url,
 	});
 	console.info(info);
+	if (REQ_PER_SECOND === 0) {
+		return;
+	}
 	limit[e] ??= {};
 	limit[e].date ??= Date.now() + 1000;
-	limit[e].remain ??= 2;
+	limit[e].remain ??= REQ_PER_SECOND;
 	if (limit[e].date as number < Date.now()) {
 		limit[e].date = Date.now() + 1000;
-		limit[e].remain = 2;
+		limit[e].remain = REQ_PER_SECOND;
 	}
 	if (limit[e].remain as number < 1) {
 		return new Response(
@@ -62,11 +89,12 @@ router.post("/create", async (request) => {
 			},
 		);
 	}
-	if (blob.size > (1024 * 1024)) {
+	if (MAX_BODY_SIZE !== 0 && blob.size > MAX_BODY_SIZE) {
 		return new Response(
 			JSON.stringify({
 				success: false,
-				message: "body too large, maximum is 1MB",
+				message: "body too large, maximum is 1MB, received: " +
+					blob.size,
 			}),
 			{
 				status: 413,
@@ -123,8 +151,10 @@ router.post("/create", async (request) => {
 	});
 });
 
-router.get("/", async () => {
-	const content = await Deno.readTextFile("./index.html");
+const content = await Deno
+	.readTextFile("./index.html");
+
+router.get("/", () => {
 	return new Response(content, {
 		headers: {
 			"content-type": "text/html",
@@ -134,7 +164,7 @@ router.get("/", async () => {
 });
 
 router.all("/favicon.ico", () =>
-	new Response("redirect", {
+	new Response("Not Found", {
 		status: 404,
 	}));
 
