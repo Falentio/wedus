@@ -5,6 +5,14 @@ Wedus is pastebin clone, and also immutable. All files are stored to
 [deno deploy](https://deno.com/deploy) when you need more limit, by default the
 limit is 2 req/s per ip
 
+## Stack Used
+
+[Flourite](https://github.com/teknologi-umum/flourite) for detect language from string\
+[Web3.storage](https://web3.storage) for file storage\
+[Deno](https://deno.land) for typescript/javascript runtime\
+[Deno Deploy](https://deno.com/deploy) for hosting\
+[Itty-Router](https://github.com/kwhitley/itty-router) for router\
+
 ## How To Create
 
 HTTPie
@@ -59,5 +67,4 @@ wedus filename
 
 > When you want to change the limit, just add MAX_BODY_SIZE and REQ_PER_SECOND
 > to env variables\
-> Set REQ_PER_SECOND to zero to disable\
-> Set MAX_BODY_SIZE to zero to disable
+> Set to zero for disable\
